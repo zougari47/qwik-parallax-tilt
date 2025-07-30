@@ -101,8 +101,6 @@ export const Tilt = component$<VanillaTiltProps>(({ options = {}, onTiltChange$,
     let glareElement: HTMLDivElement | null = null;
     let glareElementWrapper: HTMLDivElement | null = null;
 
-    const isSettingTrue = (setting: any) => setting === '' || setting === true || setting === 1;
-
     const updateElementPosition = () => {
       const rect = element.getBoundingClientRect();
       width = element.offsetWidth;
@@ -123,7 +121,7 @@ export const Tilt = component$<VanillaTiltProps>(({ options = {}, onTiltChange$,
 
       let x, y;
 
-      if (isSettingTrue(settings['full-page-listening'])) {
+      if (settings['full-page-listening']) {
         x = currentEvent.clientX / clientWidth;
         y = currentEvent.clientY / clientHeight;
       } else {
@@ -161,7 +159,7 @@ export const Tilt = component$<VanillaTiltProps>(({ options = {}, onTiltChange$,
         `rotateY(${settings.axis === 'y' ? 0 : values.tiltX}deg) ` +
         `scale3d(${settings.scale}, ${settings.scale}, ${settings.scale})`;
 
-      if (isSettingTrue(settings.glare) && glareElement) {
+      if (settings.glare && glareElement) {
         glareElement.style.transform = `rotate(${values.angle}deg) translate(-50%, -50%)`;
         glareElement.style.opacity = `${(values.percentageY * settings['max-glare']) / 100}`;
       }
@@ -180,13 +178,13 @@ export const Tilt = component$<VanillaTiltProps>(({ options = {}, onTiltChange$,
     const setTransition = () => {
       if (transitionTimeout) clearTimeout(transitionTimeout);
       element.style.transition = `${settings.speed}ms ${settings.easing}`;
-      if (isSettingTrue(settings.glare) && glareElement) {
+      if (settings.glare && glareElement) {
         glareElement.style.transition = `opacity ${settings.speed}ms ${settings.easing}`;
       }
 
       transitionTimeout = window.setTimeout(() => {
         element.style.transition = '';
-        if (isSettingTrue(settings.glare) && glareElement) {
+        if (settings.glare && glareElement) {
           glareElement.style.transition = '';
         }
       }, settings.speed);
@@ -197,7 +195,7 @@ export const Tilt = component$<VanillaTiltProps>(({ options = {}, onTiltChange$,
       element.style.willChange = 'transform';
       setTransition();
 
-      if (isSettingTrue(settings['full-page-listening'])) {
+      if (settings['full-page-listening']) {
         currentEvent = {
           clientX: ((settings.startX + settings.max) / (2 * settings.max)) * clientWidth,
           clientY: ((settings.startY + settings.max) / (2 * settings.max)) * clientHeight,
@@ -214,14 +212,14 @@ export const Tilt = component$<VanillaTiltProps>(({ options = {}, onTiltChange$,
       update();
       settings.scale = backupScale;
 
-      if (isSettingTrue(settings.glare) && glareElement) {
+      if (settings.glare && glareElement) {
         glareElement.style.transform = 'rotate(180deg) translate(-50%, -50%)';
         glareElement.style.opacity = '0';
       }
     };
 
     const prepareGlare = () => {
-      if (!isSettingTrue(settings['glare-prerender'])) {
+      if (!settings['glare-prerender']) {
         const jsTiltGlare = document.createElement('div');
         jsTiltGlare.classList.add('js-tilt-glare');
 
@@ -235,7 +233,7 @@ export const Tilt = component$<VanillaTiltProps>(({ options = {}, onTiltChange$,
       glareElementWrapper = element.querySelector('.js-tilt-glare');
       glareElement = element.querySelector('.js-tilt-glare-inner');
 
-      if (isSettingTrue(settings['glare-prerender'])) return;
+      if (settings['glare-prerender']) return;
 
       if (glareElementWrapper) {
         Object.assign(glareElementWrapper.style, {
@@ -267,7 +265,7 @@ export const Tilt = component$<VanillaTiltProps>(({ options = {}, onTiltChange$,
     };
 
     const updateGlareSize = () => {
-      if (isSettingTrue(settings.glare) && glareElement) {
+      if (settings.glare && glareElement) {
         const glareSize =
           (element.offsetWidth > element.offsetHeight
             ? element.offsetWidth
@@ -353,7 +351,7 @@ export const Tilt = component$<VanillaTiltProps>(({ options = {}, onTiltChange$,
 
     // Get element listener
     const getElementListener = () => {
-      if (isSettingTrue(settings['full-page-listening'])) {
+      if (settings['full-page-listening']) {
         return document;
       }
 
@@ -377,28 +375,28 @@ export const Tilt = component$<VanillaTiltProps>(({ options = {}, onTiltChange$,
     elementListener.addEventListener('mouseleave', onMouseLeave);
     elementListener.addEventListener('mousemove', onMouseMove);
 
-    if (isSettingTrue(settings.glare) || isSettingTrue(settings['full-page-listening'])) {
+    if (settings.glare || settings['full-page-listening']) {
       window.addEventListener('resize', onWindowResize);
     }
 
-    if (isSettingTrue(settings.gyroscope)) {
+    if (settings.gyroscope) {
       window.addEventListener('deviceorientation', onDeviceOrientation);
     }
 
     // Initialize glare
-    if (isSettingTrue(settings.glare)) {
+    if (settings.glare) {
       prepareGlare();
     }
 
     // Initialize client size for full page listening
-    if (isSettingTrue(settings['full-page-listening'])) {
+    if (settings['full-page-listening']) {
       updateClientSize();
     }
 
     // Reset to initial state
     reset();
 
-    if (isSettingTrue(settings['reset-to-start']) === false) {
+    if (settings['reset-to-start'] === false) {
       settings.startX = 0;
       settings.startY = 0;
     }
@@ -413,7 +411,7 @@ export const Tilt = component$<VanillaTiltProps>(({ options = {}, onTiltChange$,
       element.style.transform = '';
 
       // Reset glare
-      if (isSettingTrue(settings.glare) && glareElement) {
+      if (settings.glare && glareElement) {
         glareElement.style.transform = 'rotate(180deg) translate(-50%, -50%)';
         glareElement.style.opacity = '0';
       }
@@ -423,11 +421,11 @@ export const Tilt = component$<VanillaTiltProps>(({ options = {}, onTiltChange$,
       elementListener.removeEventListener('mouseleave', onMouseLeave);
       elementListener.removeEventListener('mousemove', onMouseMove);
 
-      if (isSettingTrue(settings.gyroscope)) {
+      if (settings.gyroscope) {
         window.removeEventListener('deviceorientation', onDeviceOrientation);
       }
 
-      if (isSettingTrue(settings.glare) || isSettingTrue(settings['full-page-listening'])) {
+      if (settings.glare || settings['full-page-listening']) {
         window.removeEventListener('resize', onWindowResize);
       }
     });
