@@ -47,6 +47,8 @@ export interface VanillaTiltProps
 export const Tilt = component$<VanillaTiltProps>(({ options = {}, onTiltChange$, ...divProps }) => {
   const elementRef = useSignal<HTMLDivElement>();
 
+  // todo: optimize the code and remove the warning "no-use-visible-task"
+  // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ cleanup }) => {
     const element = elementRef.value;
     if (!element) return;
