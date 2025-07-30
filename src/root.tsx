@@ -1,5 +1,5 @@
-import { Counter } from "./components/counter/counter";
-import { Logo } from "./components/logo/logo";
+import './index.css';
+import { Tilt } from './Tilt';
 
 export default () => {
   return (
@@ -9,8 +9,9 @@ export default () => {
         <title>Qwik Blank App</title>
       </head>
       <body>
-        <Logo />
-        <Counter />
+        <Tilt>
+          <div class="card"></div>
+        </Tilt>
       </body>
     </>
   );
