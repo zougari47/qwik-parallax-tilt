@@ -1,5 +1,5 @@
 import './index.css';
-import { Tilt } from './Tilt';
+import { Tilt } from '../src/Tilt';
 
 export default () => {
   return (
