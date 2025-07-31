@@ -1,50 +1,7 @@
-import {
-  component$,
-  useSignal,
-  useVisibleTask$,
-  type QwikIntrinsicElements,
-  Slot,
-} from '@builder.io/qwik';
+import { component$, useSignal, useVisibleTask$, Slot, $ } from '@builder.io/qwik';
+import type { QwikParallaxTilt, TiltOptions } from './types';
 
-export interface TiltOptions {
-  reverse?: boolean;
-  max?: number;
-  startX?: number;
-  startY?: number;
-  perspective?: number;
-  easing?: string;
-  scale?: number;
-  speed?: number;
-  transition?: boolean;
-  axis?: 'x' | 'y' | null;
-  glare?: boolean;
-  'max-glare'?: number;
-  'glare-prerender'?: boolean;
-  'full-page-listening'?: boolean;
-  'mouse-event-element'?: string | HTMLElement | null;
-  reset?: boolean;
-  'reset-to-start'?: boolean;
-  gyroscope?: boolean;
-  gyroscopeMinAngleX?: number;
-  gyroscopeMaxAngleX?: number;
-  gyroscopeMinAngleY?: number;
-  gyroscopeMaxAngleY?: number;
-  gyroscopeSamples?: number;
-}
-
-export interface VanillaTiltProps
-  extends Omit<QwikIntrinsicElements['div'], 'onMouseEnter$' | 'onMouseLeave$' | 'onMouseMove$'> {
-  options?: TiltOptions;
-  onTiltChange$?: (values: {
-    tiltX: number;
-    tiltY: number;
-    percentageX: number;
-    percentageY: number;
-    angle: number;
-  }) => void;
-}
-
-export const Tilt = component$<VanillaTiltProps>(({ options = {}, onTiltChange$, ...divProps }) => {
+export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$, ...divProps }) => {
   const elementRef = useSignal<HTMLDivElement>();
 
   // todo: optimize the code and remove the warning "no-use-visible-task"
@@ -169,7 +126,9 @@ export const Tilt = component$<VanillaTiltProps>(({ options = {}, onTiltChange$,
 
       // Call Qwik callback if provided
       if (onTiltChange$) {
-        onTiltChange$(values);
+        $(() => {
+          onTiltChange$(values);
+        });
       }
 
       updateCall = null;
