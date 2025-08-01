@@ -1,6 +1,6 @@
 import type { QwikIntrinsicElements } from '@builder.io/qwik';
 
-export interface TiltOptions {
+export interface Options {
   reverse?: boolean;
   max?: number;
   startX?: number;
@@ -12,12 +12,12 @@ export interface TiltOptions {
   transition?: boolean;
   axis?: 'x' | 'y' | null;
   glare?: boolean;
-  'max-glare'?: number;
-  'glare-prerender'?: boolean;
-  'full-page-listening'?: boolean;
-  'mouse-event-element'?: string | HTMLElement | null;
+  maxGlare?: number;
+  glarePrerender?: boolean;
+  fullPageListening?: boolean;
+  mouseEventElement?: string | HTMLElement | null;
   reset?: boolean;
-  'reset-to-start'?: boolean;
+  resetToStart?: boolean;
   gyroscope?: boolean;
   gyroscopeMinAngleX?: number;
   gyroscopeMaxAngleX?: number;
@@ -28,7 +28,7 @@ export interface TiltOptions {
 
 export interface QwikParallaxTilt
   extends Omit<QwikIntrinsicElements['div'], 'onMouseEnter$' | 'onMouseLeave$' | 'onMouseMove$'> {
-  options?: TiltOptions;
+  options?: Options;
   onTiltChange$?: (values: {
     tiltX: number;
     tiltY: number;
@@ -36,4 +36,24 @@ export interface QwikParallaxTilt
     percentageY: number;
     angle: number;
   }) => void;
+}
+
+export interface State {
+  width: number;
+  height: number;
+  clientWidth: number;
+  clientHeight: number;
+  left: number;
+  top: number;
+  gammazero: number | null;
+  betazero: number | null;
+  lastgammazero: number | null;
+  lastbetazero: number | null;
+  transitionTimeout: number | null;
+  updateCall: number | null;
+  currentEvent: MouseEvent | { clientX: number; clientY: number } | null;
+  gyroscopeSamples: number;
+  reverse: number;
+  glareElement: HTMLDivElement | null;
+  glareElementWrapper: HTMLDivElement | null;
 }

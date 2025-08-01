@@ -1,43 +1,16 @@
 import { component$, useSignal, useVisibleTask$, Slot, $ } from '@builder.io/qwik';
-import type { QwikParallaxTilt, TiltOptions } from './types';
+import type { QwikParallaxTilt, Options } from './types';
+import { defaultSettings } from './utils';
 
 export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$, ...divProps }) => {
   const elementRef = useSignal<HTMLDivElement>();
+  const settings = { ...defaultSettings, ...options };
 
   // todo: optimize the code and remove the warning "no-use-visible-task"
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ cleanup }) => {
     const element = elementRef.value;
     if (!element) return;
-
-    // Default settings
-    const defaultSettings: Required<TiltOptions> = {
-      reverse: false,
-      max: 15,
-      startX: 0,
-      startY: 0,
-      perspective: 1000,
-      easing: 'cubic-bezier(.03,.98,.52,.99)',
-      scale: 1,
-      speed: 300,
-      transition: true,
-      axis: null,
-      glare: false,
-      'max-glare': 1,
-      'glare-prerender': false,
-      'full-page-listening': false,
-      'mouse-event-element': null,
-      reset: true,
-      'reset-to-start': true,
-      gyroscope: true,
-      gyroscopeMinAngleX: -45,
-      gyroscopeMaxAngleX: 45,
-      gyroscopeMinAngleY: -45,
-      gyroscopeMaxAngleY: 45,
-      gyroscopeSamples: 10,
-    };
-
-    const settings = { ...defaultSettings, ...options };
 
     let width = 0;
     let height = 0;
@@ -78,7 +51,7 @@ export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$,
 
       let x, y;
 
-      if (settings['full-page-listening']) {
+      if (settings.fullPageListening) {
         x = currentEvent.clientX / clientWidth;
         y = currentEvent.clientY / clientHeight;
       } else {
@@ -118,7 +91,7 @@ export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$,
 
       if (settings.glare && glareElement) {
         glareElement.style.transform = `rotate(${values.angle}deg) translate(-50%, -50%)`;
-        glareElement.style.opacity = `${(values.percentageY * settings['max-glare']) / 100}`;
+        glareElement.style.opacity = `${(values.percentageY * settings.maxGlare) / 100}`;
       }
 
       // Dispatch custom event
@@ -154,7 +127,7 @@ export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$,
       element.style.willChange = 'transform';
       setTransition();
 
-      if (settings['full-page-listening']) {
+      if (settings.fullPageListening) {
         currentEvent = {
           clientX: ((settings.startX + settings.max) / (2 * settings.max)) * clientWidth,
           clientY: ((settings.startY + settings.max) / (2 * settings.max)) * clientHeight,
@@ -178,7 +151,7 @@ export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$,
     };
 
     const prepareGlare = () => {
-      if (!settings['glare-prerender']) {
+      if (!settings.glarePrerender) {
         const jsTiltGlare = document.createElement('div');
         jsTiltGlare.classList.add('js-tilt-glare');
 
@@ -192,7 +165,7 @@ export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$,
       glareElementWrapper = element.querySelector('.js-tilt-glare');
       glareElement = element.querySelector('.js-tilt-glare-inner');
 
-      if (settings['glare-prerender']) return;
+      if (settings.glarePrerender) return;
 
       if (glareElementWrapper) {
         Object.assign(glareElementWrapper.style, {
@@ -310,17 +283,17 @@ export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$,
 
     // Get element listener
     const getElementListener = () => {
-      if (settings['full-page-listening']) {
+      if (settings.fullPageListening) {
         return document;
       }
 
-      if (typeof settings['mouse-event-element'] === 'string') {
-        const mouseEventElement = document.querySelector(settings['mouse-event-element']);
+      if (typeof settings.mouseEventElement === 'string') {
+        const mouseEventElement = document.querySelector(settings.mouseEventElement);
         if (mouseEventElement) return mouseEventElement;
       }
 
-      if (settings['mouse-event-element'] instanceof Node) {
-        return settings['mouse-event-element'];
+      if (settings.mouseEventElement instanceof Node) {
+        return settings.mouseEventElement;
       }
 
       return element;
@@ -334,7 +307,7 @@ export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$,
     elementListener.addEventListener('mouseleave', onMouseLeave);
     elementListener.addEventListener('mousemove', onMouseMove);
 
-    if (settings.glare || settings['full-page-listening']) {
+    if (settings.glare || settings.fullPageListening) {
       window.addEventListener('resize', onWindowResize);
     }
 
@@ -348,14 +321,14 @@ export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$,
     }
 
     // Initialize client size for full page listening
-    if (settings['full-page-listening']) {
+    if (settings.fullPageListening) {
       updateClientSize();
     }
 
     // Reset to initial state
     reset();
 
-    if (settings['reset-to-start'] === false) {
+    if (settings.resetToStart === false) {
       settings.startX = 0;
       settings.startY = 0;
     }
@@ -384,7 +357,7 @@ export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$,
         window.removeEventListener('deviceorientation', onDeviceOrientation);
       }
 
-      if (settings.glare || settings['full-page-listening']) {
+      if (settings.glare || settings.fullPageListening) {
         window.removeEventListener('resize', onWindowResize);
       }
     });
