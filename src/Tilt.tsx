@@ -1,5 +1,5 @@
 import { component$, useSignal, useVisibleTask$, Slot, $ } from '@builder.io/qwik';
-import type { QwikParallaxTilt } from './types';
+import type { QwikParallaxTilt, State } from './types';
 import {
   defaultSettings,
   getViewportSize,
@@ -7,27 +7,6 @@ import {
   setGlareSize,
   getEventListenerTarget,
 } from './utils';
-
-// Define the TiltState interface with flat properties
-interface TiltState {
-  width: number;
-  height: number;
-  left: number;
-  top: number;
-  clientWidth: number;
-  clientHeight: number;
-  gammazero: number | null;
-  betazero: number | null;
-  lastgammazero: number | null;
-  lastbetazero: number | null;
-  samples: number;
-  transitionTimeout: number | null;
-  updateCall: number | null;
-  glareElement: HTMLDivElement | null;
-  glareWrapper: HTMLDivElement | null;
-  currentEvent: MouseEvent | { clientX: number; clientY: number } | null;
-  reverse: number;
-}
 
 export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$, ...divProps }) => {
   const elementRef = useSignal<HTMLDivElement>();
@@ -38,7 +17,7 @@ export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$,
     const element = elementRef.value;
     if (!element) return;
 
-    const state: TiltState = {
+    const state: State = {
       width: 0,
       height: 0,
       left: 0,
@@ -49,7 +28,7 @@ export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$,
       betazero: null,
       lastgammazero: null,
       lastbetazero: null,
-      samples: settings.gyroscopeSamples,
+      gyroscopeSamples: settings.gyroscopeSamples,
       transitionTimeout: null,
       updateCall: null,
       glareElement: null,
@@ -229,7 +208,7 @@ export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$,
 
       updateElementPosition();
 
-      if (state.samples > 0) {
+      if (state.gyroscopeSamples > 0) {
         state.lastgammazero = state.gammazero;
         state.lastbetazero = state.betazero;
 
@@ -241,7 +220,7 @@ export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$,
           state.betazero = (event.beta + (state.lastbetazero || 0)) / 2;
         }
 
-        state.samples -= 1;
+        state.gyroscopeSamples -= 1;
       }
 
       const totalAngleX = settings.gyroscopeMaxAngleX - settings.gyroscopeMinAngleX;
