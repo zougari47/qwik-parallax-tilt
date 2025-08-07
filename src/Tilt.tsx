@@ -1,5 +1,5 @@
 import { component$, useSignal, useVisibleTask$, Slot, $ } from '@builder.io/qwik';
-import type { QwikParallaxTilt, Options } from './types';
+import type { QwikParallaxTilt } from './types';
 import {
   defaultSettings,
   getViewportSize,
