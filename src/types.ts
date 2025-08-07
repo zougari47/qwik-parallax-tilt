@@ -55,5 +55,5 @@ export interface State {
   gyroscopeSamples: number;
   reverse: number;
   glareElement: HTMLDivElement | null;
-  glareElementWrapper: HTMLDivElement | null;
+  glareWrapper: HTMLDivElement | null;
 }

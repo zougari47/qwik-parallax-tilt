@@ -1,73 +1,73 @@
 import { component$, useSignal, useVisibleTask$, Slot, $ } from '@builder.io/qwik';
-import type { QwikParallaxTilt, Options } from './types';
-import { defaultSettings } from './utils';
+import type { QwikParallaxTilt, State } from './types';
+import {
+  defaultSettings,
+  getViewportSize,
+  applyTransition,
+  setGlareSize,
+  getEventListenerTarget,
+} from './utils';
 
 export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$, ...divProps }) => {
   const elementRef = useSignal<HTMLDivElement>();
   const settings = { ...defaultSettings, ...options };
 
-  // todo: optimize the code and remove the warning "no-use-visible-task"
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ cleanup }) => {
     const element = elementRef.value;
     if (!element) return;
 
-    let width = 0;
-    let height = 0;
-    let clientWidth = 0;
-    let clientHeight = 0;
-    let left = 0;
-    let top = 0;
-    let gammazero: number | null = null;
-    let betazero: number | null = null;
-    let lastgammazero: number | null = null;
-    let lastbetazero: number | null = null;
-    let transitionTimeout: number | null = null;
-    let updateCall: number | null = null;
-    let currentEvent: MouseEvent | { clientX: number; clientY: number } | null = null;
-    let gyroscopeSamples = settings.gyroscopeSamples;
-
-    const reverse = settings.reverse ? -1 : 1;
-    let glareElement: HTMLDivElement | null = null;
-    let glareElementWrapper: HTMLDivElement | null = null;
+    const state: State = {
+      width: 0,
+      height: 0,
+      left: 0,
+      top: 0,
+      clientWidth: 0,
+      clientHeight: 0,
+      gammazero: null,
+      betazero: null,
+      lastgammazero: null,
+      lastbetazero: null,
+      gyroscopeSamples: settings.gyroscopeSamples,
+      transitionTimeout: null,
+      updateCall: null,
+      glareElement: null,
+      glareWrapper: null,
+      currentEvent: null,
+      reverse: settings.reverse ? -1 : 1,
+    };
 
     const updateElementPosition = () => {
       const rect = element.getBoundingClientRect();
-      width = element.offsetWidth;
-      height = element.offsetHeight;
-      left = rect.left;
-      top = rect.top;
-    };
-
-    const updateClientSize = () => {
-      clientWidth =
-        window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-      clientHeight =
-        window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+      state.width = element.offsetWidth;
+      state.height = element.offsetHeight;
+      state.left = rect.left;
+      state.top = rect.top;
     };
 
     const getValues = () => {
-      if (!currentEvent) return { tiltX: 0, tiltY: 0, percentageX: 0, percentageY: 0, angle: 0 };
+      if (!state.currentEvent)
+        return { tiltX: 0, tiltY: 0, percentageX: 0, percentageY: 0, angle: 0 };
 
       let x, y;
 
       if (settings.fullPageListening) {
-        x = currentEvent.clientX / clientWidth;
-        y = currentEvent.clientY / clientHeight;
+        x = state.currentEvent.clientX / state.clientWidth;
+        y = state.currentEvent.clientY / state.clientHeight;
       } else {
-        x = (currentEvent.clientX - left) / width;
-        y = (currentEvent.clientY - top) / height;
+        x = (state.currentEvent.clientX - state.left) / state.width;
+        y = (state.currentEvent.clientY - state.top) / state.height;
       }
 
       x = Math.min(Math.max(x, 0), 1);
       y = Math.min(Math.max(y, 0), 1);
 
-      const tiltX = parseFloat((reverse * (settings.max - x * settings.max * 2)).toFixed(2));
-      const tiltY = parseFloat((reverse * (y * settings.max * 2 - settings.max)).toFixed(2));
+      const tiltX = parseFloat((state.reverse * (settings.max - x * settings.max * 2)).toFixed(2));
+      const tiltY = parseFloat((state.reverse * (y * settings.max * 2 - settings.max)).toFixed(2));
       const angle =
         Math.atan2(
-          currentEvent.clientX - (left + width / 2),
-          -(currentEvent.clientY - (top + height / 2))
+          state.currentEvent.clientX - (state.left + state.width / 2),
+          -(state.currentEvent.clientY - (state.top + state.height / 2))
         ) *
         (180 / Math.PI);
 
@@ -89,53 +89,38 @@ export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$,
         `rotateY(${settings.axis === 'y' ? 0 : values.tiltX}deg) ` +
         `scale3d(${settings.scale}, ${settings.scale}, ${settings.scale})`;
 
-      if (settings.glare && glareElement) {
-        glareElement.style.transform = `rotate(${values.angle}deg) translate(-50%, -50%)`;
-        glareElement.style.opacity = `${(values.percentageY * settings.maxGlare) / 100}`;
+      if (settings.glare && state.glareElement) {
+        state.glareElement.style.transform = `rotate(${values.angle}deg) translate(-50%, -50%)`;
+        state.glareElement.style.opacity = `${(values.percentageY * settings.maxGlare) / 100}`;
       }
 
-      // Dispatch custom event
       element.dispatchEvent(new CustomEvent('tiltChange', { detail: values }));
 
-      // Call Qwik callback if provided
       if (onTiltChange$) {
         $(() => {
           onTiltChange$(values);
         });
       }
 
-      updateCall = null;
-    };
-
-    const setTransition = () => {
-      if (transitionTimeout) clearTimeout(transitionTimeout);
-      element.style.transition = `${settings.speed}ms ${settings.easing}`;
-      if (settings.glare && glareElement) {
-        glareElement.style.transition = `opacity ${settings.speed}ms ${settings.easing}`;
-      }
-
-      transitionTimeout = window.setTimeout(() => {
-        element.style.transition = '';
-        if (settings.glare && glareElement) {
-          glareElement.style.transition = '';
-        }
-      }, settings.speed);
+      state.updateCall = null;
     };
 
     const reset = () => {
       updateElementPosition();
       element.style.willChange = 'transform';
-      setTransition();
+      applyTransition(element, state, settings);
 
       if (settings.fullPageListening) {
-        currentEvent = {
-          clientX: ((settings.startX + settings.max) / (2 * settings.max)) * clientWidth,
-          clientY: ((settings.startY + settings.max) / (2 * settings.max)) * clientHeight,
+        state.currentEvent = {
+          clientX: ((settings.startX + settings.max) / (2 * settings.max)) * state.clientWidth,
+          clientY: ((settings.startY + settings.max) / (2 * settings.max)) * state.clientHeight,
         };
       } else {
-        currentEvent = {
-          clientX: left + ((settings.startX + settings.max) / (2 * settings.max)) * width,
-          clientY: top + ((settings.startY + settings.max) / (2 * settings.max)) * height,
+        state.currentEvent = {
+          clientX:
+            state.left + ((settings.startX + settings.max) / (2 * settings.max)) * state.width,
+          clientY:
+            state.top + ((settings.startY + settings.max) / (2 * settings.max)) * state.height,
         };
       }
 
@@ -144,9 +129,9 @@ export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$,
       update();
       settings.scale = backupScale;
 
-      if (settings.glare && glareElement) {
-        glareElement.style.transform = 'rotate(180deg) translate(-50%, -50%)';
-        glareElement.style.opacity = '0';
+      if (settings.glare && state.glareElement) {
+        state.glareElement.style.transform = 'rotate(180deg) translate(-50%, -50%)';
+        state.glareElement.style.opacity = '0';
       }
     };
 
@@ -162,13 +147,13 @@ export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$,
         element.appendChild(jsTiltGlare);
       }
 
-      glareElementWrapper = element.querySelector('.js-tilt-glare');
-      glareElement = element.querySelector('.js-tilt-glare-inner');
+      state.glareWrapper = element.querySelector('.js-tilt-glare') as HTMLDivElement;
+      state.glareElement = element.querySelector('.js-tilt-glare-inner') as HTMLDivElement;
 
       if (settings.glarePrerender) return;
 
-      if (glareElementWrapper) {
-        Object.assign(glareElementWrapper.style, {
+      if (state.glareWrapper) {
+        Object.assign(state.glareWrapper.style, {
           position: 'absolute',
           top: '0',
           left: '0',
@@ -180,8 +165,8 @@ export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$,
         });
       }
 
-      if (glareElement) {
-        Object.assign(glareElement.style, {
+      if (state.glareElement) {
+        Object.assign(state.glareElement.style, {
           position: 'absolute',
           top: '50%',
           left: '50%',
@@ -192,41 +177,27 @@ export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$,
           opacity: '0',
         });
 
-        updateGlareSize();
+        setGlareSize(element, state);
       }
     };
 
-    const updateGlareSize = () => {
-      if (settings.glare && glareElement) {
-        const glareSize =
-          (element.offsetWidth > element.offsetHeight
-            ? element.offsetWidth
-            : element.offsetHeight) * 2;
-        Object.assign(glareElement.style, {
-          width: `${glareSize}px`,
-          height: `${glareSize}px`,
-        });
-      }
-    };
-
-    // Event handlers
     const onMouseEnter = () => {
       updateElementPosition();
       element.style.willChange = 'transform';
-      setTransition();
+      applyTransition(element, state, settings);
     };
 
     const onMouseMove = (event: Event) => {
       const mouseEvent = event as MouseEvent;
-      if (updateCall !== null) {
-        cancelAnimationFrame(updateCall);
+      if (state.updateCall !== null) {
+        cancelAnimationFrame(state.updateCall);
       }
-      currentEvent = mouseEvent;
-      updateCall = requestAnimationFrame(update);
+      state.currentEvent = mouseEvent;
+      state.updateCall = requestAnimationFrame(update);
     };
 
     const onMouseLeave = () => {
-      setTransition();
+      applyTransition(element, state, settings);
       if (settings.reset) {
         requestAnimationFrame(reset);
       }
@@ -237,72 +208,56 @@ export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$,
 
       updateElementPosition();
 
-      if (gyroscopeSamples > 0) {
-        lastgammazero = gammazero;
-        lastbetazero = betazero;
+      if (state.gyroscopeSamples > 0) {
+        state.lastgammazero = state.gammazero;
+        state.lastbetazero = state.betazero;
 
-        if (gammazero === null) {
-          gammazero = event.gamma;
-          betazero = event.beta;
+        if (state.gammazero === null) {
+          state.gammazero = event.gamma;
+          state.betazero = event.beta;
         } else {
-          gammazero = (event.gamma + (lastgammazero || 0)) / 2;
-          betazero = (event.beta + (lastbetazero || 0)) / 2;
+          state.gammazero = (event.gamma + (state.lastgammazero || 0)) / 2;
+          state.betazero = (event.beta + (state.lastbetazero || 0)) / 2;
         }
 
-        gyroscopeSamples -= 1;
+        state.gyroscopeSamples -= 1;
       }
 
       const totalAngleX = settings.gyroscopeMaxAngleX - settings.gyroscopeMinAngleX;
       const totalAngleY = settings.gyroscopeMaxAngleY - settings.gyroscopeMinAngleY;
 
-      const degreesPerPixelX = totalAngleX / width;
-      const degreesPerPixelY = totalAngleY / height;
+      const degreesPerPixelX = totalAngleX / state.width;
+      const degreesPerPixelY = totalAngleY / state.height;
 
-      const angleX = event.gamma - (settings.gyroscopeMinAngleX + (gammazero || 0));
-      const angleY = event.beta - (settings.gyroscopeMinAngleY + (betazero || 0));
+      const angleX = event.gamma - (settings.gyroscopeMinAngleX + (state.gammazero || 0));
+      const angleY = event.beta - (settings.gyroscopeMinAngleY + (state.betazero || 0));
 
       const posX = angleX / degreesPerPixelX;
       const posY = angleY / degreesPerPixelY;
 
-      if (updateCall !== null) {
-        cancelAnimationFrame(updateCall);
+      if (state.updateCall !== null) {
+        cancelAnimationFrame(state.updateCall);
       }
 
-      currentEvent = {
-        clientX: posX + left,
-        clientY: posY + top,
+      state.currentEvent = {
+        clientX: posX + state.left,
+        clientY: posY + state.top,
       };
 
-      updateCall = requestAnimationFrame(update);
+      state.updateCall = requestAnimationFrame(update);
     };
 
     const onWindowResize = () => {
-      updateGlareSize();
-      updateClientSize();
-    };
-
-    // Get element listener
-    const getElementListener = () => {
+      setGlareSize(element, state);
       if (settings.fullPageListening) {
-        return document;
+        const { width, height } = getViewportSize();
+        state.clientWidth = width;
+        state.clientHeight = height;
       }
-
-      if (typeof settings.mouseEventElement === 'string') {
-        const mouseEventElement = document.querySelector(settings.mouseEventElement);
-        if (mouseEventElement) return mouseEventElement;
-      }
-
-      if (settings.mouseEventElement instanceof Node) {
-        return settings.mouseEventElement;
-      }
-
-      return element;
     };
 
-    // Initialize
-    const elementListener = getElementListener();
+    const elementListener = getEventListenerTarget(settings, element);
 
-    // Add event listeners
     elementListener.addEventListener('mouseenter', onMouseEnter);
     elementListener.addEventListener('mouseleave', onMouseLeave);
     elementListener.addEventListener('mousemove', onMouseMove);
@@ -315,17 +270,16 @@ export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$,
       window.addEventListener('deviceorientation', onDeviceOrientation);
     }
 
-    // Initialize glare
     if (settings.glare) {
       prepareGlare();
     }
 
-    // Initialize client size for full page listening
     if (settings.fullPageListening) {
-      updateClientSize();
+      const { width, height } = getViewportSize();
+      state.clientWidth = width;
+      state.clientHeight = height;
     }
 
-    // Reset to initial state
     reset();
 
     if (settings.resetToStart === false) {
@@ -333,22 +287,19 @@ export const Tilt = component$<QwikParallaxTilt>(({ options = {}, onTiltChange$,
       settings.startY = 0;
     }
 
-    // Cleanup function
     cleanup(() => {
-      if (transitionTimeout) clearTimeout(transitionTimeout);
-      if (updateCall !== null) cancelAnimationFrame(updateCall);
+      if (state.transitionTimeout) clearTimeout(state.transitionTimeout);
+      if (state.updateCall !== null) cancelAnimationFrame(state.updateCall);
 
       element.style.willChange = '';
       element.style.transition = '';
       element.style.transform = '';
 
-      // Reset glare
-      if (settings.glare && glareElement) {
-        glareElement.style.transform = 'rotate(180deg) translate(-50%, -50%)';
-        glareElement.style.opacity = '0';
+      if (settings.glare && state.glareElement) {
+        state.glareElement.style.transform = 'rotate(180deg) translate(-50%, -50%)';
+        state.glareElement.style.opacity = '0';
       }
 
-      // Remove event listeners
       elementListener.removeEventListener('mouseenter', onMouseEnter);
       elementListener.removeEventListener('mouseleave', onMouseLeave);
       elementListener.removeEventListener('mousemove', onMouseMove);
